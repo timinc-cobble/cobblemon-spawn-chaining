@@ -2,13 +2,12 @@ package us.timinc.mc.cobblemon.spawnchaining
 
 import com.cobblemon.mod.common.api.Priority
 import com.cobblemon.mod.common.api.events.CobblemonEvents
-import com.cobblemon.mod.common.util.asIdentifierDefaultingNamespace
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.MutableComponent
 import us.timinc.mc.cobblemon.spawnchaining.config.ContextConfig
 import us.timinc.mc.cobblemon.spawnchaining.handler.CaptureChainer
 import us.timinc.mc.cobblemon.spawnchaining.handler.KoChainer
-import us.timinc.mc.cobblemon.spawnchaining.influence.ReplacementInfluence
+import us.timinc.mc.cobblemon.spawnchaining.handler.ReplacementHandler
 import us.timinc.mc.cobblemon.timcore.*
 import us.timinc.mc.cobblemon.timcore.pokemonpropertyextractor.CustomPropertiesExtractor
 
@@ -75,30 +74,10 @@ object SpawnChaining : AbstractMod<SpawnChaining.SpawnChainingConfig>(MOD_ID, Sp
         val CUSTOM_PROPERTY_CHAINING = CustomPropertiesExtractor(DataKeys.SPAWN_CHAINING)
     }
 
-    init {
-        CobblemonEvents.POKEMON_CAPTURED.subscribe(Priority.LOWEST, CaptureChainer::handle)
-        TimCoreEvents.BATTLE_FAINTED_PVW_WILD.subscribe(Priority.LOWEST, KoChainer::handle)
-        registerPlayerSpawnerInfluence(
-            ReplacementInfluence(
-                TimCore.DataKeys.SpawnerTypes.PLAYER.asIdentifierDefaultingNamespace(
-                    MOD_ID
-                )
-            )
-        )
-        registerFishingSpawnerInfluence(
-            ReplacementInfluence(
-                TimCore.DataKeys.SpawnerTypes.FISHING.asIdentifierDefaultingNamespace(
-                    MOD_ID
-                )
-            )
-        )
-        registerHabitatSpawnerInfluence(
-            ReplacementInfluence(
-                TimCore.DataKeys.SpawnerTypes.PLAYER.asIdentifierDefaultingNamespace(
-                    MOD_ID
-                ),
-                enabled = { config.treatActivatedHabitatSpawnsAsPlayerSpawns }
-            )
-        )
+    override fun registerEventHandlers() {
+        super.registerEventHandlers()
+        CobblemonEvents.POKEMON_CAPTURED.subscribe(Priority.NORMAL, CaptureChainer::handle)
+        TimCoreEvents.BATTLE_FAINTED_PVW_WILD.subscribe(Priority.NORMAL, KoChainer::handle)
+        TimCoreEvents.SPAWNING_SPAWN.subscribe(Priority.HIGHEST, ReplacementHandler::handle)
     }
 }
