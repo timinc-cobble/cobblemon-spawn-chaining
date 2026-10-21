@@ -2,8 +2,10 @@ package us.timinc.mc.cobblemon.spawnchaining
 
 import com.cobblemon.mod.common.api.Priority
 import com.cobblemon.mod.common.api.events.CobblemonEvents
+import com.cobblemon.mod.common.platform.events.PlatformEvents
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.MutableComponent
+import org.apache.logging.log4j.LogManager
 import us.timinc.mc.cobblemon.spawnchaining.config.ContextConfig
 import us.timinc.mc.cobblemon.spawnchaining.handler.CaptureChainer
 import us.timinc.mc.cobblemon.spawnchaining.handler.KoChainer
@@ -74,8 +76,30 @@ object SpawnChaining : AbstractMod<SpawnChaining.SpawnChainingConfig>(MOD_ID, Sp
         val CUSTOM_PROPERTY_CHAINING = CustomPropertiesExtractor(DataKeys.SPAWN_CHAINING)
     }
 
+    private fun warnAboutMissingCounter() {
+        if (TimCore.isModInstalled("cobbled_counter")) return
+
+        val affectedConfigs = mutableListOf<String>()
+        if (config.points.isNotEmpty()) affectedConfigs.add("config/$MOD_ID.json")
+        contextConfigs.forEach { (context, triggerConfigs) ->
+            triggerConfigs.forEach { (trigger, contextConfig) ->
+                if (!contextConfig.points.isNullOrEmpty()) {
+                    affectedConfigs.add("config/$MOD_ID/${trigger}_${context.substringAfter(':')}.json")
+                }
+            }
+        }
+        if (affectedConfigs.isEmpty()) return
+
+        LogManager.getLogger(MOD_ID).warn(
+            "Counter is not installed, but points bonuses are configured in: ${affectedConfigs.joinToString()}. " +
+                "Those bonuses will be ignored; base chaining chances still apply."
+        )
+    }
+
     override fun registerEventHandlers() {
         super.registerEventHandlers()
+        PlatformEvents.SERVER_STARTED.subscribe { warnAboutMissingCounter() }
+        RELOAD_CONFIG.subscribe { warnAboutMissingCounter() }
         CobblemonEvents.POKEMON_CAPTURED.subscribe(Priority.NORMAL, CaptureChainer::handle)
         TimCoreEvents.BATTLE_FAINTED_PVW_WILD.subscribe(Priority.NORMAL, KoChainer::handle)
         TimCoreEvents.SPAWNING_SPAWN.subscribe(Priority.HIGHEST, ReplacementHandler::handle)

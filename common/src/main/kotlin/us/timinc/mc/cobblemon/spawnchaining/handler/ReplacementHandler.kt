@@ -7,11 +7,9 @@ import com.cobblemon.mod.common.util.asIdentifierDefaultingNamespace
 import kotlin.random.Random.Default.nextFloat
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
-import us.timinc.mc.cobblemon.counter.api.CounterTypeRegistry
-import us.timinc.mc.cobblemon.counter.CounterMod
-import us.timinc.mc.cobblemon.counter.extension.getCounterManager
 import us.timinc.mc.cobblemon.spawnchaining.MOD_ID
 import us.timinc.mc.cobblemon.spawnchaining.SpawnChaining
+import us.timinc.mc.cobblemon.spawnchaining.compat.counter.SpawnChainingCounter
 import us.timinc.mc.cobblemon.spawnchaining.store.SpawnOverride
 import us.timinc.mc.cobblemon.timcore.AbstractHandler
 import us.timinc.mc.cobblemon.timcore.Debugger
@@ -103,30 +101,14 @@ object ReplacementHandler : AbstractHandler<SpawningInfluenceEvents.Spawn>() {
         trigger: String,
         debugger: Debugger.Case<SpawnChaining.SpawnChainingConfig>?,
     ): Float {
-        val manager = player.getCounterManager()
-
-        var boost = 0F
-        val points = SpawnChaining.getContextConfig(context.toString(), trigger)?.points ?: SpawnChaining.config.points
-        for ((counterTypeName, scoreTypeList) in points) {
-            for ((scoreTypeName, value) in scoreTypeList) {
-                try {
-                    val counterType = CounterTypeRegistry.findByType(counterTypeName)
-                    val species = pokemonRep.species!!
-                    val form = pokemonRep.form!!
-                    val statScore = if (scoreTypeName == CounterMod.ScoreTypes.STREAK.type) manager.getStreakScore(
-                        counterType,
-                        species.resourceIdentifier,
-                        form.name
-                    ) else manager.getCountScore(counterType, species.resourceIdentifier, form.name)
-                    boost += statScore * value
-                } catch (e: Exception) {
-                    e.message?.let { debugger?.debug(it) }
-                }
-            }
+        val contextConfig = SpawnChaining.getContextConfig(context.toString(), trigger)
+        val initialChance = contextConfig?.initialChance ?: SpawnChaining.config.initialChance
+        val points = contextConfig?.points ?: SpawnChaining.config.points
+        if (points.isEmpty()) return initialChance
+        if (!TimCore.isModInstalled("cobbled_counter")) {
+            return initialChance
         }
-
-        val initialChance =
-            SpawnChaining.getContextConfig(context.toString(), trigger)?.initialChance ?: SpawnChaining.config.initialChance
+        val boost = SpawnChainingCounter.getBoost(player, pokemonRep, points, debugger)
         return initialChance + boost
     }
 }

@@ -40,3 +40,10 @@ mandatory = true
 versionRange = "[${tim_core_neoforge_version},)"
 ordering = "NONE"
 side = "BOTH"
+
+[[dependencies.${modId}]]
+modId = "cobbled_counter"
+type = "optional"
+versionRange = "[${counter_neoforge_version},)"
+ordering = "NONE"
+side = "BOTH"
