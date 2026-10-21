@@ -85,7 +85,7 @@ object ReplacementHandler : AbstractHandler<SpawningInfluenceEvents.Spawn>() {
             player.sendSystemMessage(SpawnChaining.TranslationComponents.chained())
         }
 
-        val breakOnSuccess = SpawnChaining.getContextConfig(override.context.path, override.trigger)?.breakOnSuccess
+        val breakOnSuccess = SpawnChaining.getContextConfig(override.context.toString(), override.trigger)?.breakOnSuccess
             ?: SpawnChaining.config.breakOnSuccess
         if (breakOnSuccess) {
             SpawnOverride.remove(player)

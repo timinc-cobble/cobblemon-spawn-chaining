@@ -56,7 +56,7 @@ interface SpawnOverrideRecorder {
 
         val previousLevelMod = (SpawnChaining.CustomPokemonProperties.LEVEL_MOD.getValue(pokemon)?.toInt() ?: 0)
         debugger.debug("Previous level mod was $previousLevelMod.")
-        val contextConfig = SpawnChaining.getContextConfig(spawnCauseId.path, trigger)
+        val contextConfig = SpawnChaining.getContextConfig(spawnCauseId.toString(), trigger)
         val levelModRoll = (contextConfig?.levelModRange ?: SpawnChaining.config.levelModRange).random()
         debugger.debug("Rolled a new level mod of $levelModRoll.")
         val levelMod = (contextConfig?.levelModMaxRange ?: SpawnChaining.config.levelModMaxRange).constrain(levelModRoll + previousLevelMod)
