@@ -1,32 +1,42 @@
-package us.timinc.mc.cobblemon.spawnchaining.influence
+package us.timinc.mc.cobblemon.spawnchaining.handler
 
 import com.cobblemon.mod.common.api.pokemon.PokemonProperties
 import com.cobblemon.mod.common.api.spawning.detail.PokemonSpawnAction
-import com.cobblemon.mod.common.api.spawning.detail.SpawnAction
-import com.cobblemon.mod.common.api.spawning.influence.SpawningInfluence
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity
+import com.cobblemon.mod.common.util.asIdentifierDefaultingNamespace
+import kotlin.random.Random.Default.nextFloat
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
-import net.minecraft.world.entity.Entity
-import us.timinc.mc.cobblemon.counter.CounterMod
 import us.timinc.mc.cobblemon.counter.api.CounterTypeRegistry
+import us.timinc.mc.cobblemon.counter.CounterMod
 import us.timinc.mc.cobblemon.counter.extension.getCounterManager
+import us.timinc.mc.cobblemon.spawnchaining.MOD_ID
 import us.timinc.mc.cobblemon.spawnchaining.SpawnChaining
 import us.timinc.mc.cobblemon.spawnchaining.store.SpawnOverride
+import us.timinc.mc.cobblemon.timcore.AbstractHandler
 import us.timinc.mc.cobblemon.timcore.Debugger
+import us.timinc.mc.cobblemon.timcore.event.SpawningInfluenceEvents
+import us.timinc.mc.cobblemon.timcore.getType
 import us.timinc.mc.cobblemon.timcore.LimitedList
 import us.timinc.mc.cobblemon.timcore.PokemonMatcher
 import us.timinc.mc.cobblemon.timcore.PokemonRepresentation
-import kotlin.random.Random.Default.nextFloat
+import us.timinc.mc.cobblemon.timcore.TimCore
 
-class ReplacementInfluence(
-    val context: ResourceLocation,
-    val player: ServerPlayer? = null,
-    val enabled: () -> Boolean = { true },
-) : SpawningInfluence {
-    override fun affectSpawn(action: SpawnAction<*>, entity: Entity) {
-        if (!enabled()) return
+object ReplacementHandler : AbstractHandler<SpawningInfluenceEvents.Spawn>() {
+    override fun handle(evt: SpawningInfluenceEvents.Spawn) {
+        val action = evt.action
+        val entity = evt.entity
         if (action !is PokemonSpawnAction || entity !is PokemonEntity) return
+
+        val contextType = when (val type = evt.position.spawner.getType()) {
+            TimCore.DataKeys.SpawnerTypes.PLAYER, TimCore.DataKeys.SpawnerTypes.FISHING -> type
+            TimCore.DataKeys.SpawnerTypes.HABITAT -> {
+                if (!SpawnChaining.config.treatActivatedHabitatSpawnsAsPlayerSpawns) return
+                TimCore.DataKeys.SpawnerTypes.PLAYER
+            }
+            else -> return
+        }
+        val context = contextType.asIdentifierDefaultingNamespace(MOD_ID)
 
         val debugger = SpawnChaining.debugger.getCaseDebugger()
 
@@ -41,7 +51,7 @@ class ReplacementInfluence(
             return
         }
 
-        val player = player ?: action.spawnablePosition.cause.entity as? ServerPlayer ?: return
+        val player = action.spawnablePosition.cause.entity as? ServerPlayer ?: return
         debugger.debug("Attempting a replacement influence for ${player.name.string} on the $context context.")
 
         val override = SpawnOverride.find(player, context)
