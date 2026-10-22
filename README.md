@@ -1,6 +1,6 @@
 # Spawn Chaining
 
-v1.8.1-1.1
+v1.8.2-1.1
 
 [Modrinth](https://modrinth.com/mod/cobblemon-spawn-chaining)
 
